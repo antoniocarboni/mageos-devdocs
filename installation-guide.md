@@ -372,7 +372,7 @@ bin/magento admin:user:create \
 printf "u: %s\np: %s\n" "${ADMIN_USER}" "${ADMIN_PASS}"
 ```
 
-
+You should now be able to access your site under `https://app.YOUR_PROJECTNAME.test/`.
 
 
 ## Option: Local Development with DDEV
