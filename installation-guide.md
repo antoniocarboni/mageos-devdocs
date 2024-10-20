@@ -372,4 +372,111 @@ bin/magento admin:user:create \
 printf "u: %s\np: %s\n" "${ADMIN_USER}" "${ADMIN_PASS}"
 ```
 
-You should now be able to access your site under `https://app.YOUR_PROJECTNAME.test/`.
+
+
+
+## Option: Local Development with DDEV
+
+Another popular way to install Magento locally is [DDEV](https://ddev.com/). Follow the steps below after
+you [installed DDEV](https://ddev.readthedocs.io/en/stable/users/install/ddev-installation/).
+
+After you run through the steps below, you will have fully configured Magento 2 running locally with Redis, OpenSearch,
+RabbitMQ, MariaDB, SSL, PHP, Xdebug, and Varnish.
+
+
+**Create a new environment**
+
+```shell
+ddev config
+```
+
+**Spin up the environment**
+
+```shell
+ddev start
+```
+
+**Access your shell**
+
+```shell
+ddev ssh
+```
+
+**Ensure `pub/static` is available**
+
+```shell
+mkdir -p pub/static
+```
+
+**Install the Application**
+Replace <projectname> with the name set for your project (or get name from /.ddev/config.yaml)
+```shell
+bin/magento setup:install \
+     --backend-frontname=backend \
+     --amqp-host=<projectname>-rabbitmq \
+     --amqp-port=5672 \
+     --amqp-user=guest \
+     --amqp-password=guest \
+     --db-host=db \
+     --db-name=db \
+     --db-user=db \
+     --db-password=db \
+     --search-engine=opensearch \
+     --opensearch-host=<projectname>-opensearch \
+     --opensearch-port=9200 \
+     --opensearch-index-prefix=magento2 \
+     --opensearch-enable-auth=0 \
+     --opensearch-timeout=15 \
+     --http-cache-hosts=varnish:80 \
+     --session-save=redis \
+     --session-save-redis-host=redis \
+     --session-save-redis-port=6379 \
+     --session-save-redis-db=2 \
+     --session-save-redis-max-concurrency=20 \
+     --cache-backend=redis \
+     --cache-backend-redis-server=redis \
+     --cache-backend-redis-db=0 \
+     --cache-backend-redis-port=6379 \
+     --page-cache=redis \
+     --page-cache-redis-server=redis \
+     --page-cache-redis-db=1 \
+     --page-cache-redis-port=6379
+```
+
+**Configure the Application**
+Replace <projectname> with the name set for your project (or get name from /.ddev/config.yaml)
+
+```shell
+bin/magento config:set --lock-env web/unsecure/base_url "<projectname>.ddev.site/"
+bin/magento config:set --lock-env web/secure/base_url "https://<projectname>.ddev.site/"
+bin/magento config:set --lock-env web/secure/offloader_header X-Forwarded-Proto
+bin/magento config:set --lock-env web/secure/use_in_frontend 1
+bin/magento config:set --lock-env web/secure/use_in_adminhtml 1
+bin/magento config:set --lock-env web/seo/use_rewrites 1
+bin/magento config:set --lock-env system/full_page_cache/caching_application 2
+bin/magento config:set --lock-env system/full_page_cache/ttl 604800
+bin/magento config:set --lock-env catalog/search/enable_eav_indexer 1
+bin/magento config:set --lock-env dev/static/sign 0
+bin/magento deploy:mode:set -s developer
+bin/magento cache:disable block_html full_page
+bin/magento indexer:reindex
+bin/magento cache:flush
+bin/magento cache:enable
+```
+
+**Set up an admin user without 2FA**
+
+```shell
+ADMIN_PASS="$(pwgen -n1 16)"
+ADMIN_USER=localadmin
+
+bin/magento admin:user:create \
+    --admin-password="${ADMIN_PASS}" \
+    --admin-user="${ADMIN_USER}" \
+    --admin-firstname="Local" \
+    --admin-lastname="Admin" \
+    --admin-email="${ADMIN_USER}@example.com"
+printf "u: %s\np: %s\n" "${ADMIN_USER}" "${ADMIN_PASS}"
+```
+
+You should now be able to access your site under `https://<projectname>.ddev.site`.
